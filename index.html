@@ -97,6 +97,35 @@ button.secundario {
   margin-top: 14px; cursor: pointer;
 }
 .copia-manual { display: block; width: 100%; height: 120px; margin-top: 8px; font: .85rem/1.4 monospace; }
+
+.barra-guardar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.barra-guardar input {
+  flex: 1 1 160px; font: inherit; color: var(--fg); background: var(--panel);
+  border: 1.5px solid var(--borde); border-radius: 8px; padding: 8px 10px; min-width: 0;
+}
+.barra-guardar button {
+  font: 600 .95rem var(--texto); background: var(--acento); color: var(--acento-fg);
+  border: none; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+}
+.modo-almacen { flex-basis: 100%; color: var(--suave); font-size: .85rem; }
+.diseno-tarjeta {
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 10px;
+  padding: 12px 14px; margin-top: 10px; display: flex; gap: 10px;
+  justify-content: space-between; align-items: center; flex-wrap: wrap;
+}
+.diseno-datos { display: grid; gap: 2px; min-width: 0; }
+.diseno-datos .nota { margin: 0; }
+.diseno-acciones { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini {
+  font: 600 .85rem var(--texto); color: var(--acento); background: none;
+  border: 1.5px solid var(--borde); border-radius: 999px; padding: 5px 10px; cursor: pointer;
+}
+.etiqueta-foto {
+  justify-self: start; font-size: .75rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--aviso); background: var(--aviso-fondo);
+  border-radius: 999px; padding: 2px 8px;
+}
+#disenos h2 { font-family: var(--display); font-size: 1.05rem; margin: 24px 0 0; }
 @media (prefers-reduced-motion: no-preference) {
   .chip, button.secundario { transition: background .15s, color .15s; }
 }
@@ -110,14 +139,25 @@ button.secundario {
 <main>
   <div id="formulario"></div>
   <div>
+    <div class="barra-guardar">
+      <input type="text" id="nombre-diseno" placeholder="Nombre del diseño (ej. Chaleco verde DK)" autocomplete="off">
+      <button type="button" id="guardar-diseno">Guardar diseño</button>
+      <span class="modo-almacen" id="modo-almacen">Guardado solo en este navegador.</span>
+    </div>
     <div id="resultado"></div>
+    <section id="disenos">
+      <h2>Mis diseños</h2>
+      <div id="lista-disenos"></div>
+    </section>
   </div>
 </main>
 
 <script type="module">
   import { calcularReceta } from "./lib/receta.js";
+  import { crearAlmacen } from "./lib/almacen.js";
   import { montarFormulario } from "./ui/formulario.js";
   import { mostrarReceta } from "./ui/receta-vista.js";
+  import { montarListaDisenos } from "./ui/disenos-vista.js";
 
   const $form = document.getElementById("formulario");
   const $resultado = document.getElementById("resultado");
@@ -149,7 +189,7 @@ button.secundario {
     const lista = new Set(diseno.avance[piezaId] ?? []);
     if (marcado) lista.add(paso); else lista.delete(paso);
     diseno = { ...diseno, avance: { ...diseno.avance, [piezaId]: [...lista].sort((a, b) => a - b) } };
-    document.dispatchEvent(new CustomEvent("diseno-cambiado", { detail: diseno }));
+    guardarSiYaExiste();
   }
 
   let temporizador = null;
@@ -158,15 +198,68 @@ button.secundario {
     if (!soloEstado) montarFormulario($form, diseno, alCambiar);
     clearTimeout(temporizador);
     temporizador = setTimeout(dibujarReceta, 300);
-    document.dispatchEvent(new CustomEvent("diseno-cambiado", { detail: diseno }));
   }
 
   montarFormulario($form, diseno, alCambiar);
   dibujarReceta();
 
-  // Punto de enganche para «Mis diseños» (se conecta en la etapa de almacenamiento).
-  window.calculadora = {
-    get diseno() { return diseno; },
-    cargar(nuevo) { alCambiar(nuevo); },
-  };
+  // ---- Mis diseños ----
+  const $nombre = document.getElementById("nombre-diseno");
+  const $modo = document.getElementById("modo-almacen");
+  const $lista = document.getElementById("lista-disenos");
+
+  let storageSeguro = null;
+  try { localStorage.getItem("prueba"); storageSeguro = localStorage; } catch { /* sin localStorage */ }
+  let almacen = crearAlmacen({ db: null, storage: storageSeguro });
+  let dejarDeEscuchar = almacen.escuchar(dibujarLista);
+
+  function dibujarLista(disenos) {
+    montarListaDisenos($lista, disenos, {
+      abrir(d) {
+        alCambiar({ ...d });
+        $nombre.value = d.nombre === "Sin nombre" ? "" : (d.nombre ?? "");
+        document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+      async duplicar(d) {
+        await enCola(() => almacen.guardar({ ...d, id: null, creado: null, avance: {},
+          nombre: `${d.nombre ?? "Sin nombre"} (copia)` }));
+      },
+      async borrar(d) {
+        await enCola(() => almacen.borrar(d.id));
+        if (diseno.id === d.id) diseno = { ...diseno, id: null };
+      },
+    });
+  }
+
+  // Una escritura a la vez: cada operación espera a la anterior.
+  let cola = Promise.resolve();
+  function enCola(operacion) {
+    cola = cola.then(operacion, operacion);
+    return cola;
+  }
+
+  document.getElementById("guardar-diseno").addEventListener("click", async () => {
+    diseno = { ...diseno, nombre: $nombre.value.trim() || "Sin nombre" };
+    const guardado = await enCola(() => almacen.guardar(diseno));
+    diseno = { ...diseno, id: guardado.id, creado: guardado.creado, actualizado: guardado.actualizado };
+  });
+
+  let guardandoAvance = false;
+  async function guardarSiYaExiste() {
+    if (!diseno.id || guardandoAvance) return;
+    guardandoAvance = true;
+    try { await enCola(() => almacen.guardar(diseno)); } finally { guardandoAvance = false; }
+  }
+
+  // Si la base de datos del artifact está disponible, pasar de local a nube.
+  (async () => {
+    try {
+      const db = window.claude?.use ? await window.claude.use("db") : null;
+      if (!db) return;
+      dejarDeEscuchar?.();
+      almacen = crearAlmacen({ db });
+      dejarDeEscuchar = almacen.escuchar(dibujarLista);
+      $modo.textContent = "Guardado en tu cuenta: tus diseños te siguen entre dispositivos.";
+    } catch { /* se queda en modo local */ }
+  })();
 </script>
