@@ -42,3 +42,11 @@ test("calcularReceta nunca lanza", () => {
   const r = calcularReceta(null);
   assert.ok(Array.isArray(r.errores));
 });
+
+test("sweater con manga imposible: error de receta, sin piezas a medias", () => {
+  const r = calcularReceta({ ...chaleco, prenda: "sweater", hilado: { grosor: "fingering" },
+    medidas: { pecho: 92, largo: 55, sisa: 22, hombros: 40, brazo: 30, muneca: 15, largoBrazo: 20 } });
+  assert.ok(r.errores.some((e) => e.includes("manga")), JSON.stringify(r.errores));
+  assert.equal(r.piezas.length, 0);
+  assert.equal(r.material, null);
+});

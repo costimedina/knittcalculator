@@ -46,17 +46,24 @@ function campoNumero({ id, etiqueta, valor, placeholder, guia, sufijo }, alEscri
 
 /** Dibuja el formulario completo. Vuelve a dibujarse solo en cambios de estructura;
  *  escribir en un campo solo actualiza el estado (no se pierde el foco). */
-export function montarFormulario(contenedor, diseno, alCambiar) {
-  // `d` es una referencia viva: cada emisión la actualiza, para que un campo
-  // no pise lo escrito en otro entre un dibujo y el siguiente.
-  let d = diseno;
-  const emitir = (nuevo, soloEstado = false) => { d = nuevo; alCambiar(nuevo, soloEstado); };
-  const cambiar = (parche) => emitir({ ...d, ...parche });
-  const cambiarOpcion = (parche) => cambiar({ opciones: { ...d.opciones, ...parche } });
-  const cambiarHilado = (parche, redibujar = false) =>
-    emitir({ ...d, hilado: { ...d.hilado, ...parche } }, !redibujar);
-  const cambiarMedida = (clave, valor) =>
-    emitir({ ...d, medidas: { ...d.medidas, [clave]: valor } }, true);
+export function montarFormulario(contenedor, obtenerDiseno, alCambiar) {
+  // El estado vivo es del llamador: cada cambio parte del diseño ACTUAL
+  // (obtenerDiseno()), nunca de una copia del momento del dibujo, para no
+  // pisar lo que guardado, avance o borrado cambiaron entremedio.
+  const cambiar = (parche) => alCambiar({ ...obtenerDiseno(), ...parche });
+  const cambiarOpcion = (parche) => {
+    const v = obtenerDiseno();
+    alCambiar({ ...v, opciones: { ...v.opciones, ...parche } });
+  };
+  const cambiarHilado = (parche, redibujar = false) => {
+    const v = obtenerDiseno();
+    alCambiar({ ...v, hilado: { ...v.hilado, ...parche } }, !redibujar);
+  };
+  const cambiarMedida = (clave, valor) => {
+    const v = obtenerDiseno();
+    alCambiar({ ...v, medidas: { ...v.medidas, [clave]: valor } }, true);
+  };
+  const d = obtenerDiseno(); // instantánea solo para dibujar
 
   const fila = GROSORES.find((g) => g.id === d.hilado.grosor) ?? GROSORES[1];
   const esCrochet = d.tecnica === "crochet";

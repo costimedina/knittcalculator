@@ -154,6 +154,7 @@ button.secundario {
 
 <script type="module">
   import { calcularReceta } from "./lib/receta.js";
+  import { normalizarDiseno } from "./lib/diseno.js";
   import { crearAlmacen } from "./lib/almacen.js";
   import { montarFormulario } from "./ui/formulario.js";
   import { mostrarReceta } from "./ui/receta-vista.js";
@@ -195,12 +196,12 @@ button.secundario {
   let temporizador = null;
   function alCambiar(nuevo, soloEstado = false) {
     diseno = nuevo;
-    if (!soloEstado) montarFormulario($form, diseno, alCambiar);
+    if (!soloEstado) montarFormulario($form, () => diseno, alCambiar);
     clearTimeout(temporizador);
     temporizador = setTimeout(dibujarReceta, 300);
   }
 
-  montarFormulario($form, diseno, alCambiar);
+  montarFormulario($form, () => diseno, alCambiar);
   dibujarReceta();
 
   // ---- Mis diseños ----
@@ -216,7 +217,9 @@ button.secundario {
   function dibujarLista(disenos) {
     montarListaDisenos($lista, disenos, {
       abrir(d) {
-        alCambiar({ ...d });
+        // Un diseño guardado puede venir incompleto (p. ej. escrito por Claude
+        // desde una foto): se normaliza antes de tocar el formulario.
+        alCambiar(normalizarDiseno(d));
         $nombre.value = d.nombre === "Sin nombre" ? "" : (d.nombre ?? "");
         document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
       },
@@ -244,11 +247,11 @@ button.secundario {
     diseno = { ...diseno, id: guardado.id, creado: guardado.creado, actualizado: guardado.actualizado };
   });
 
-  let guardandoAvance = false;
-  async function guardarSiYaExiste() {
-    if (!diseno.id || guardandoAvance) return;
-    guardandoAvance = true;
-    try { await enCola(() => almacen.guardar(diseno)); } finally { guardandoAvance = false; }
+  function guardarSiYaExiste() {
+    if (!diseno.id) return;
+    // enCola ya serializa las escrituras; la operación lee `diseno` al momento
+    // de ejecutarse, así que ninguna marca rápida se pierde.
+    enCola(() => almacen.guardar(diseno)).catch(() => {});
   }
 
   // Si la base de datos del artifact está disponible, pasar de local a nube.
