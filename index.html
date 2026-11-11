@@ -1,0 +1,172 @@
+<title>Calculadora de Tejido</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Nunito+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: una columna en celular; formulario y receta lado a lado desde 900px. */
+:root {
+  --bg: #faf8f5; --panel: #ffffff; --fg: #2d2a26; --suave: #6e675e;
+  --borde: #e4ddd3; --acento: #8a4066; --acento-fg: #ffffff;
+  --error: #b3261e; --error-fondo: #fceeed; --aviso: #7a5200; --aviso-fondo: #faf3e0;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --texto: "Nunito Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #201d1a; --panel: #2a2622; --fg: #ece7e0; --suave: #a89f93;
+    --borde: #403a33; --acento: #d389b2; --acento-fg: #33131f;
+    --error: #ffb4ab; --error-fondo: #3c2422; --aviso: #e8c26a; --aviso-fondo: #38301d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #201d1a; --panel: #2a2622; --fg: #ece7e0; --suave: #a89f93;
+  --borde: #403a33; --acento: #d389b2; --acento-fg: #33131f;
+  --error: #ffb4ab; --error-fondo: #3c2422; --aviso: #e8c26a; --aviso-fondo: #38301d;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--texto);
+  font-size: 16px; line-height: 1.5; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+header.cabecera { max-width: 1060px; margin: 0 auto; padding-block: 28px 8px; }
+h1 { font-family: var(--display); font-size: 1.9rem; margin: 0; text-wrap: balance; }
+.lema { color: var(--suave); margin: 4px 0 0; }
+main { max-width: 1060px; margin: 0 auto; display: grid; gap: 24px; }
+@media (min-width: 900px) { main { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } }
+main > * { min-width: 0; }
+
+.paso { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+h2 { font-family: var(--display); font-size: 1.05rem; margin: 0 0 10px; display: flex; align-items: center; gap: 10px; }
+.paso-n {
+  background: var(--acento); color: var(--acento-fg); font-size: .85rem;
+  width: 22px; height: 22px; border-radius: 50%; display: inline-flex;
+  align-items: center; justify-content: center; flex: none;
+}
+h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); margin: 14px 0 6px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: 600 .95rem var(--texto); color: var(--fg); background: none;
+  border: 1.5px solid var(--borde); border-radius: 999px; padding: 7px 14px; cursor: pointer;
+}
+.chip.activo { background: var(--acento); border-color: var(--acento); color: var(--acento-fg); }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+.campo { display: block; margin-top: 10px; }
+.campo-nombre { display: block; font-weight: 600; font-size: .95rem; }
+.campo-nombre::first-letter { text-transform: uppercase; }
+.campo-control { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.campo input {
+  width: 110px; font: inherit; color: var(--fg); background: var(--bg);
+  border: 1.5px solid var(--borde); border-radius: 8px; padding: 7px 10px;
+  font-variant-numeric: tabular-nums;
+}
+.sufijo { color: var(--suave); font-size: .9rem; }
+.guia { display: block; color: var(--suave); font-size: .85rem; margin-top: 2px; max-width: 46ch; }
+.fila-doble { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.nota { color: var(--suave); font-size: .9rem; margin: 10px 0 0; }
+details.muestra-propia { margin-top: 12px; border-top: 1px dashed var(--borde); padding-top: 10px; }
+details.muestra-propia summary { cursor: pointer; font-weight: 600; color: var(--acento); }
+
+.mensaje { border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; font-weight: 600; }
+.mensaje.error { background: var(--error-fondo); color: var(--error); }
+.mensaje.aviso { background: var(--aviso-fondo); color: var(--aviso); }
+.mensaje.pendiente { background: var(--panel); border: 1.5px dashed var(--borde); color: var(--suave); }
+
+.material { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.cifra {
+  flex: 1 1 90px; background: var(--acento); color: var(--acento-fg);
+  border-radius: 10px; padding: 12px; text-align: center;
+}
+.cifra strong { display: block; font-family: var(--display); font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.cifra span { font-size: .85rem; }
+
+.pieza { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 16px; margin-top: 14px; }
+.pieza h3 { margin: 0 0 8px; text-transform: none; letter-spacing: 0; font-family: var(--display); font-size: 1rem; color: var(--fg); }
+.pasos { margin: 0; padding-left: 2px; list-style: none; display: grid; gap: 8px; }
+.paso-item { display: flex; gap: 10px; cursor: pointer; }
+.paso-item input { margin-top: 3px; accent-color: var(--acento); flex: none; }
+.paso-item input:checked + span { color: var(--suave); text-decoration: line-through; }
+
+button.secundario {
+  font: 600 .95rem var(--texto); color: var(--acento); background: none;
+  border: 1.5px solid var(--acento); border-radius: 999px; padding: 8px 16px;
+  margin-top: 14px; cursor: pointer;
+}
+.copia-manual { display: block; width: 100%; height: 120px; margin-top: 8px; font: .85rem/1.4 monospace; }
+@media (prefers-reduced-motion: no-preference) {
+  .chip, button.secundario { transition: background .15s, color .15s; }
+}
+</style>
+
+<header class="cabecera">
+  <h1>Calculadora de Tejido</h1>
+  <p class="lema">De tus medidas en centímetros a puntos, vueltas y ovillos.</p>
+</header>
+
+<main>
+  <div id="formulario"></div>
+  <div>
+    <div id="resultado"></div>
+  </div>
+</main>
+
+<script type="module">
+  import { calcularReceta } from "./lib/receta.js";
+  import { montarFormulario } from "./ui/formulario.js";
+  import { mostrarReceta } from "./ui/receta-vista.js";
+
+  const $form = document.getElementById("formulario");
+  const $resultado = document.getElementById("resultado");
+
+  // El diseño vivo guarda lo escrito tal cual (strings); calcularReceta lo normaliza.
+  let diseno = {
+    tecnica: "palillo", prenda: "chaleco",
+    opciones: { escote: "redondo", holgura: "normal", puntoCrochet: "pb" },
+    hilado: { grosor: "dk" }, medidas: {}, avance: {},
+  };
+
+  function hayMedidas() {
+    return Object.values(diseno.medidas).some((v) => String(v ?? "").trim() !== "");
+  }
+
+  function dibujarReceta() {
+    const receta = calcularReceta(diseno);
+    if (receta.errores.length && receta.errores.every((e) => e.startsWith("Falta la medida")) && !hayMedidas()) {
+      receta.errores = [];
+      receta.avisos = ["Ingresa tus medidas en el paso 4 y la receta aparecerá aquí."];
+      mostrarReceta($resultado, receta, diseno.avance, marcarAvance);
+      $resultado.firstChild?.classList.replace("aviso", "pendiente");
+      return;
+    }
+    mostrarReceta($resultado, receta, diseno.avance, marcarAvance);
+  }
+
+  function marcarAvance(piezaId, paso, marcado) {
+    const lista = new Set(diseno.avance[piezaId] ?? []);
+    if (marcado) lista.add(paso); else lista.delete(paso);
+    diseno = { ...diseno, avance: { ...diseno.avance, [piezaId]: [...lista].sort((a, b) => a - b) } };
+    document.dispatchEvent(new CustomEvent("diseno-cambiado", { detail: diseno }));
+  }
+
+  let temporizador = null;
+  function alCambiar(nuevo, soloEstado = false) {
+    diseno = nuevo;
+    if (!soloEstado) montarFormulario($form, diseno, alCambiar);
+    clearTimeout(temporizador);
+    temporizador = setTimeout(dibujarReceta, 300);
+    document.dispatchEvent(new CustomEvent("diseno-cambiado", { detail: diseno }));
+  }
+
+  montarFormulario($form, diseno, alCambiar);
+  dibujarReceta();
+
+  // Punto de enganche para «Mis diseños» (se conecta en la etapa de almacenamiento).
+  window.calculadora = {
+    get diseno() { return diseno; },
+    cargar(nuevo) { alCambiar(nuevo); },
+  };
+</script>
