@@ -136,19 +136,7 @@ if col_boton.button("Guardar diseño", use_container_width=True):
                                     if d.get("nombre") != guardado["nombre"]] + [guardado]
         st.success(f"Guardado «{guardado['nombre']}». Recuerda descargar el archivo antes de cerrar la pestaña.")
 
-if st.session_state.disenos:
-    for i in range(len(st.session_state.disenos) - 1, -1, -1):
-        d = st.session_state.disenos[i]
-        detalle = f"{PRENDAS.get(d.get('prenda'), d.get('prenda'))} · {d.get('tecnica', '')}"
-        col_d, col_b = st.columns([5, 1], vertical_alignment="center")
-        col_d.write(f"**{d.get('nombre', 'Sin nombre')}** — {detalle}")
-        if col_b.button("Borrar", key=f"borrar_{i}_{d.get('nombre', '')}", use_container_width=True):
-            st.session_state.disenos.pop(i)
-            st.rerun()
-    st.download_button("Descargar mis diseños (JSON)",
-                       json.dumps(st.session_state.disenos, ensure_ascii=False, indent=2),
-                       file_name="disenos-knitmetry.json", mime="application/json")
-
+# El archivo se procesa ANTES de dibujar la lista, para que lo importado aparezca al tiro.
 archivo = st.file_uploader("Importar diseños desde un archivo JSON", type="json")
 if archivo is not None:
     try:
@@ -157,8 +145,27 @@ if archivo is not None:
             importados = [importados]
         nuevos = [normalizar_diseno(d) for d in importados if isinstance(d, dict)]
         existentes = {d.get("nombre") for d in st.session_state.disenos}
-        st.session_state.disenos += [d for d in nuevos if d["nombre"] not in existentes]
-        st.success(f"Importados {len(nuevos)} diseño(s). Elige sus opciones en la barra lateral "
-                   "según lo que diga cada uno.")
+        agregados = [d for d in nuevos if d["nombre"] not in existentes]
+        if agregados:
+            st.session_state.disenos += agregados
+            st.success(f"Importados {len(agregados)} diseño(s). Elige sus opciones en la barra "
+                       "lateral según lo que diga cada uno.")
+        elif nuevos:
+            st.caption("Esos diseños ya estaban en la lista.")
     except (json.JSONDecodeError, UnicodeDecodeError):
         st.error("El archivo no se pudo leer como JSON de diseños.")
+
+if st.session_state.disenos:
+    for i in range(len(st.session_state.disenos) - 1, -1, -1):
+        d = st.session_state.disenos[i]
+        detalle = f"{PRENDAS.get(d.get('prenda'), d.get('prenda'))} · {d.get('tecnica', '')}"
+        col_d, col_b = st.columns([5, 1], vertical_alignment="center")
+        col_d.write(f"**{d.get('nombre', 'Sin nombre')}** — {detalle}")
+        if d.get("origen") == "foto" and d.get("notaFoto"):
+            col_d.caption("Desde foto: " + d["notaFoto"])
+        if col_b.button("Borrar", key=f"borrar_{i}_{d.get('nombre', '')}", use_container_width=True):
+            st.session_state.disenos.pop(i)
+            st.rerun()
+    st.download_button("Descargar mis diseños (JSON)",
+                       json.dumps(st.session_state.disenos, ensure_ascii=False, indent=2),
+                       file_name="disenos-knitmetry.json", mime="application/json")
