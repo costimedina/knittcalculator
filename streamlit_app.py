@@ -127,15 +127,24 @@ st.caption("En esta versión web los diseños duran mientras la pestaña esté a
 col_nombre, col_boton = st.columns([3, 1], vertical_alignment="bottom")
 nombre = col_nombre.text_input("Nombre del diseño", placeholder="ej. Chaleco verde DK")
 if col_boton.button("Guardar diseño", use_container_width=True):
-    guardado = dict(diseno, nombre=nombre or "Sin nombre",
-                    actualizado=datetime.now(timezone.utc).isoformat())
-    st.session_state.disenos = [d for d in st.session_state.disenos
-                                if d.get("nombre") != guardado["nombre"]] + [guardado]
+    if not hay_medidas:
+        st.warning("No se guardó nada: el diseño está vacío. Completa las medidas del paso 4 primero.")
+    else:
+        guardado = dict(diseno, nombre=nombre or "Sin nombre",
+                        actualizado=datetime.now(timezone.utc).isoformat())
+        st.session_state.disenos = [d for d in st.session_state.disenos
+                                    if d.get("nombre") != guardado["nombre"]] + [guardado]
+        st.success(f"Guardado «{guardado['nombre']}». Recuerda descargar el archivo antes de cerrar la pestaña.")
 
 if st.session_state.disenos:
-    for d in reversed(st.session_state.disenos):
+    for i in range(len(st.session_state.disenos) - 1, -1, -1):
+        d = st.session_state.disenos[i]
         detalle = f"{PRENDAS.get(d.get('prenda'), d.get('prenda'))} · {d.get('tecnica', '')}"
-        st.write(f"**{d.get('nombre', 'Sin nombre')}** — {detalle}")
+        col_d, col_b = st.columns([5, 1], vertical_alignment="center")
+        col_d.write(f"**{d.get('nombre', 'Sin nombre')}** — {detalle}")
+        if col_b.button("Borrar", key=f"borrar_{i}_{d.get('nombre', '')}", use_container_width=True):
+            st.session_state.disenos.pop(i)
+            st.rerun()
     st.download_button("Descargar mis diseños (JSON)",
                        json.dumps(st.session_state.disenos, ensure_ascii=False, indent=2),
                        file_name="disenos-knitmetry.json", mime="application/json")
