@@ -1,4 +1,4 @@
-# Knithmetic — calculadora de tejido en Streamlit.
+# Knitmetry — calculadora de tejido en Streamlit.
 # De las medidas del cuerpo en cm a puntos, vueltas y ovillos, a palillo o crochet.
 import json
 from datetime import datetime, timezone
@@ -10,7 +10,7 @@ from calculos import (
     calcular_receta, normalizar_diseno, resolver_muestra,
 )
 
-st.set_page_config(page_title="Knithmetic", page_icon="🧶", layout="wide")
+st.set_page_config(page_title="Knitmetry", page_icon="🧶", layout="wide")
 
 PRENDAS = {"gorro": "Gorro", "crop": "Crop top", "chaleco": "Chaleco", "sweater": "Sweater"}
 PUNTOS_CROCHET = {"pb": "Punto bajo", "mp": "Medio punto", "vareta": "Vareta"}
@@ -70,7 +70,7 @@ diseno = {"tecnica": tecnica, "prenda": prenda, "opciones": opciones,
 
 # ---- Centro: la receta ----
 
-st.title("🧶 Knithmetic")
+st.title("🧶 Knitmetry")
 st.caption("Del cuerpo al ovillo: tus medidas en centímetros convertidas en puntos, vueltas y ovillos.")
 
 receta = calcular_receta(diseno)
@@ -95,7 +95,7 @@ if receta["material"]:
                "margen de seguridad incluido.")
 
 def receta_como_texto(r):
-    lineas = ["Knithmetic — receta", ""]
+    lineas = ["Knitmetry — receta", ""]
     for pieza in r["piezas"]:
         extra = f" (×{pieza['cantidad']})" if pieza["cantidad"] > 1 else ""
         lineas.append(f"{pieza['nombre']}{extra}:")
@@ -115,7 +115,7 @@ for pieza in receta["piezas"]:
 
 if receta["piezas"]:
     st.download_button("Descargar receta (texto)", receta_como_texto(receta),
-                       file_name="receta-knithmetic.txt", mime="text/plain")
+                       file_name="receta-knitmetry.txt", mime="text/plain")
 
 # ---- Mis diseños (duran mientras la pestaña esté abierta; exportables a archivo) ----
 
@@ -138,7 +138,7 @@ if st.session_state.disenos:
         st.write(f"**{d.get('nombre', 'Sin nombre')}** — {detalle}")
     st.download_button("Descargar mis diseños (JSON)",
                        json.dumps(st.session_state.disenos, ensure_ascii=False, indent=2),
-                       file_name="disenos-knithmetic.json", mime="application/json")
+                       file_name="disenos-knitmetry.json", mime="application/json")
 
 archivo = st.file_uploader("Importar diseños desde un archivo JSON", type="json")
 if archivo is not None:

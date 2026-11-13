@@ -1,4 +1,4 @@
-# Calculos de Knithmetic: port fiel de lib/*.js (misma matemática, mismos redondeos).
+# Calculos de Knitmetry: port fiel de lib/*.js (misma matemática, mismos redondeos).
 # La fuente de verdad del diseño es docs/specs/2026-11-11-calculadora-tejido-design.md.
 import math
 

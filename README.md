@@ -50,7 +50,7 @@ Las medidas pueden ir vacías: la página las pide y `normalizarDiseno` completa
 cualquier campo faltante sin romperse. El diseño aparece en «Mis diseños» con la
 marca «desde foto».
 
-## Versión Streamlit (Knithmetic)
+## Versión Streamlit (Knitmetry)
 
 `streamlit_app.py` es la misma calculadora como app de Streamlit, con los cálculos
 portados a Python en `calculos.py` (misma matemática y redondeos que `lib/*.js`,
