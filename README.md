@@ -49,3 +49,18 @@ de la spec §4. Campos mínimos:
 Las medidas pueden ir vacías: la página las pide y `normalizarDiseno` completa
 cualquier campo faltante sin romperse. El diseño aparece en «Mis diseños» con la
 marca «desde foto».
+
+## Versión Streamlit (Knithmetic)
+
+`streamlit_app.py` es la misma calculadora como app de Streamlit, con los cálculos
+portados a Python en `calculos.py` (misma matemática y redondeos que `lib/*.js`,
+verificado con los mismos casos en `test_calculos.py`).
+
+```bash
+pip install -r requirements.txt
+pytest test_calculos.py   # 42 pruebas
+streamlit run streamlit_app.py
+```
+
+En Streamlit Community Cloud los diseños duran lo que dure la pestaña; se pueden
+descargar e importar como JSON (mismo formato que la colección `disenos` del artifact).
